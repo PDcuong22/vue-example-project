@@ -23,9 +23,10 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import TicketForm from '@/components/forms/ticket.vue'
-import * as ticketService from '@/services/ticketService'
-import type { Ticket } from '@/models'
+import TicketForm from '@/components/forms/TicketForm.vue'
+import ticketService from '@/services/ticket.service'
+import type { Ticket } from '@/types/models'
+import type { UpdateTicketDto } from '@/types/dto'
 const route = useRoute()
 const router = useRouter()
 const id = Number(route.params.id)
@@ -37,20 +38,21 @@ async function load() {
   loading.value = true
   try {
     // try getTicket, fallback to list search if not available
-    if (typeof ticketService.getTicket === 'function') {
-      ticket.value = await ticketService.getTicket(id)
+    if (typeof ticketService.get === 'function') {
+      ticket.value = await ticketService.get(id)
+      console.log('Loaded ticket', ticket.value)
     } else {
-      const all = await ticketService.listTickets({ page: 1, size: 1000 })
-      ticket.value = all.items.find((t: Ticket) => t.id === id) ?? null
+      const all = await ticketService.list({ page: 1, size: 1000 })
+      ticket.value = all.data.find((t: Ticket) => t.id === id) ?? null
     }
   } finally {
     loading.value = false
   }
 }
 
-async function onSubmit(payload: Ticket) {
+async function onSubmit(payload: UpdateTicketDto) {
   try {
-    await ticketService.updateTicket(id, payload)
+    await ticketService.update(id, payload)
     ElMessage.success('Ticket updated')
     router.push({ name: 'tickets.list' }).catch(() => {})
   } catch {

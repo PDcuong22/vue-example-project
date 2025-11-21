@@ -20,12 +20,12 @@
     <div v-else-if="ticket">
       <el-card>
         <p><strong>Title:</strong> {{ ticket.title }}</p>
-        <p><strong>Assignee:</strong> {{ ticket.assignee }}</p>
+        <p><strong>Assignee:</strong> {{ ticket.assigned_to?.name }}</p>
         <p>
           <strong>Status:</strong>
-          <el-tag :type="statusType(ticket.status)">{{ ticket.status }}</el-tag>
+          <el-tag :type="statusType(ticket.status?.name.toLowerCase())">{{ ticket.status?.name }}</el-tag>
         </p>
-        <p><strong>Created:</strong> {{ ticket.createdAt }}</p>
+        <p><strong>Created:</strong> {{ ticket.created_at }}</p>
         <p><strong>Description:</strong></p>
         <p style="white-space: pre-wrap">{{ ticket.description }}</p>
       </el-card>
@@ -40,8 +40,8 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import * as ticketService from '@/services/ticketService'
-import type { Ticket } from '@/models'
+import ticketService from '@/services/ticket.service'
+import type { Ticket } from '@/types/models'
 
 const route = useRoute()
 const router = useRouter()
@@ -53,11 +53,11 @@ const loading = ref(true)
 async function load() {
   loading.value = true
   try {
-    if (typeof ticketService.getTicket === 'function') {
-      ticket.value = await ticketService.getTicket(id)
+    if (typeof ticketService.get === 'function') {
+      ticket.value = await ticketService.get(id)
     } else {
-      const all = await ticketService.listTickets({ page: 1, size: 1000 })
-      ticket.value = all.items.find((t: Ticket) => t.id === id) ?? null
+      const all = await ticketService.list({ page: 1, size: 1000 })
+      ticket.value = all.data.find((t: Ticket) => t.id === id) ?? null
     }
   } finally {
     loading.value = false
@@ -78,7 +78,7 @@ function goEdit() {
 function confirmDelete() {
   ElMessageBox.confirm('Delete this ticket?', 'Confirm', { type: 'warning' })
     .then(async () => {
-      await ticketService.deleteTicket(id)
+      await ticketService.delete(id)
       ElMessage.success('Deleted')
       router.push({ name: 'tickets.list' }).catch(() => {})
     })

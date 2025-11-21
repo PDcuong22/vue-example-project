@@ -22,19 +22,45 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import * as userService from '@/services/userService'
-import * as authService from '@/services/authService'
+import authService from '@/services/auth.service'
+import { useAuthStore } from '@/stores/authStore'
+import type { Dto } from '@/types'
 
+const authStore = useAuthStore()
 const router = useRouter()
-const form = ref({ email: '', password: '' })
-
+const form = ref<Dto.LoginDto>({
+  email: '',
+  password: '',
+})
 async function onSubmit() {
   try {
-    const user = await userService.login(form.value.email)
-    // mock token — replace with real token from API
-    authService.setToken('mock-token:' + String(user?.id ?? ''))
-    ElMessage.success('Logged in')
-    router.push({ name: 'home' }).catch(() => {})
+    const res = await authService.login(form.value)
+    console.log('login res:', res)
+
+    // 1) persist token first
+    if (res.access_token) {
+      authStore.setToken(res.access_token)
+    }
+
+    // 2) ensure we have current user BEFORE navigating
+    if (res.user) {
+      authStore.setUser(res.user)
+      console.log('Set current user after login:', res.user)
+    } else {
+      // backend didn't return user -> fetch it using token
+      try {
+        const me = await authService.fetchCurrentUser()
+        authStore.setUser(me)
+      } catch (err) {
+        // nếu fetch user thất bại, clear token và báo lỗi
+        authStore.setToken(null)
+        console.error('Failed to fetch current user after login:', err)
+        return
+      }
+    }
+
+    // 3) now navigate
+    await router.push({ name: 'home' })
   } catch (e) {
     ElMessage.error('Login failed' + (e instanceof Error ? `: ${e.message}` : ''))
   }

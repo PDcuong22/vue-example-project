@@ -32,22 +32,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import SidebarMenu from './components/SidebarMenu.vue'
 import Profile from './components/ProfileUser.vue'
-import * as userService from '@/services/userService'
-import * as authService from '@/services/authService'
+import { useAuthStore } from '@/stores/authStore'
 
 const router = useRouter()
 const route = useRoute()
+const authStore = useAuthStore()
 const pageTitle = ref('Dashboard')
-
-// const user = reactive({ name: 'admin', avatar: '' })
 
 function logout() {
   console.log('User logged out')
-  localStorage.removeItem('authToken')
+  authStore.logout()
   router.push({ name: 'auth.login' }).catch(() => router.push('/'))
 }
 
@@ -55,14 +53,8 @@ function handleCommand(command: string) {
   if (command === 'logout') logout()
   else if (command === 'profile') router.push({ name: 'profile' }).catch(() => {})
 }
-
-const currentUser = ref()
-onMounted(async () => {
-  if (authService.isAuthenticated()) {
-    currentUser.value = await userService.getCurrentUser()
-    console.log('Current user:', currentUser.value)
-  }
-})
+const currentUser = authStore.user
+console.log('Current User in App.vue:', currentUser)
 
 // hide layout when route.meta.hideLayout === true
 const showLayout = computed(() => !(route.meta && route.meta.hideLayout))

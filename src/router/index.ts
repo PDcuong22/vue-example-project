@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
-import * as authService from '@/services/authService'
+import authService from '@/services/auth.service'
 
 const routes = [
   {

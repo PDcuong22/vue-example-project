@@ -1,14 +1,14 @@
 <template>
   <el-dropdown @command="onCommand" placement="bottom-end">
     <span class="dropdown-trigger" tabindex="0">
-      <el-avatar :size="36" :src="user.avatar" class="avatar">{{ fallbackInitial }}</el-avatar>
-      <span class="user-name">{{ user.name }}</span>
+      <el-avatar :size="36" :src="user?.avatar_url" class="avatar">{{ fallbackInitial }}</el-avatar>
+      <span class="user-name">{{ user?.name }}</span>
     </span>
 
     <template #dropdown>
       <el-dropdown-menu>
         <el-dropdown-item command="profile">
-          <el-icon><User /></el-icon>
+          <el-icon><UserIcon /></el-icon>
           <span>Profile</span>
         </el-dropdown-item>
         <el-dropdown-item command="logout">
@@ -21,20 +21,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { User, SwitchButton } from '@element-plus/icons-vue'
+import { computed, toRef } from 'vue'
+import { User as UserIcon, SwitchButton } from '@element-plus/icons-vue'
 import { defineProps, withDefaults } from 'vue'
+import type { Models } from '@/types'
 
 const props = withDefaults(
   defineProps<{
-    user?: { name?: string; avatar?: string }
+    user?: Models.AuthUser | null
   }>(),
-  {
-    user: () => ({ name: 'Guest', avatar: '' }),
-  },
+  { user: null },
 )
 
-const user = props.user!
+// keep a reactive ref to props.user
+const user = toRef(props, 'user')
 
 const emit = defineEmits<{
   (e: 'command', cmd: string): void
@@ -45,7 +45,7 @@ function onCommand(cmd: string) {
 }
 
 const fallbackInitial = computed(() => {
-  return user?.name ? user.name.charAt(0).toUpperCase() : ''
+  return user.value?.name ? user.value.name.charAt(0).toUpperCase() : ''
 })
 </script>
 

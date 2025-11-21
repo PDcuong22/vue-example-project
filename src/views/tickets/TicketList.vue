@@ -19,12 +19,77 @@
 
     <el-table :data="items" stripe style="width: 100%" :loading="loading" row-key="id">
       <el-table-column prop="id" label="#" width="60" />
-      <el-table-column prop="createdAt" label="Date" width="140" />
       <el-table-column prop="title" label="Title" />
-      <el-table-column prop="assignee" label="Assignee" width="140" />
-      <el-table-column prop="status" label="Status" width="120">
+      <el-table-column prop="description" label="Description" width="140" />
+
+      <!-- categories column -->
+      <el-table-column label="Categories" width="180">
         <template #default="{ row }">
-          <el-tag :type="statusType(row.status)">{{ row.status }}</el-tag>
+          <div class="tags-cell">
+            <template v-for="(c) in (row.categories || []).slice(0, 2)" :key="`cat-${c.id}`">
+              <el-tag size="small" type="info" class="tag-item">{{ c.name }}</el-tag>
+            </template>
+
+            <template v-if="(row.categories || []).length > 2">
+              <el-popover placement="top" width="220" trigger="hover">
+                <div class="pop-list">
+                  <el-tag
+                    v-for="c in (row.categories || []).slice(2)"
+                    :key="`cat-more-${c.id}`"
+                    size="small"
+                    class="pop-tag"
+                  >
+                    {{ c.name }}
+                  </el-tag>
+                </div>
+                <template #reference>
+                  <el-tag size="small" class="more-tag"
+                    >+{{ (row.categories || []).length - 2 }}</el-tag
+                  >
+                </template>
+              </el-popover>
+            </template>
+          </div>
+        </template>
+      </el-table-column>
+
+      <!-- labels column -->
+      <el-table-column label="Labels" width="180">
+        <template #default="{ row }">
+          <div class="tags-cell">
+            <template v-for="(l) in (row.labels || []).slice(0, 2)" :key="`lab-${l.id}`">
+              <el-tag size="small" type="warning" class="tag-item">{{ l.name }}</el-tag>
+            </template>
+
+            <template v-if="(row.labels || []).length > 2">
+              <el-popover placement="top" width="220" trigger="hover">
+                <div class="pop-list">
+                  <el-tag
+                    v-for="l in (row.labels || []).slice(2)"
+                    :key="`lab-more-${l.id}`"
+                    size="small"
+                    class="pop-tag"
+                  >
+                    {{ l.name }}
+                  </el-tag>
+                </div>
+                <template #reference>
+                  <el-tag size="small" class="more-tag"
+                    >+{{ (row.labels || []).length - 2 }}</el-tag
+                  >
+                </template>
+              </el-popover>
+            </template>
+          </div>
+        </template>
+      </el-table-column>
+
+      <el-table-column prop="assigned_to.name" label="Assigned To" width="140" />
+      <el-table-column prop="status.name" label="Status" width="120">
+        <template #default="{ row }">
+          <el-tag :type="statusType(row.status?.name?.toLowerCase())">{{
+            row.status?.name
+          }}</el-tag>
         </template>
       </el-table-column>
 
@@ -55,11 +120,11 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import * as ticketService from '@/services/ticketService'
-import type { Ticket } from '@/models'
+import ticketService from '@/services/ticket.service'
+import type { Models } from '@/types'
 const router = useRouter()
 
-const items = ref<Ticket[]>([])
+const items = ref<Models.Ticket[]>([])
 const total = ref(0)
 const loading = ref(false)
 
@@ -69,13 +134,8 @@ const filter = reactive({ q: '' })
 async function fetchList() {
   loading.value = true
   try {
-    const res = await ticketService.listTickets({
-      page: pagination.page,
-      size: pagination.size,
-      q: filter.q,
-    })
-    items.value = res.items as Ticket[]
-    total.value = res.total
+    const res = await ticketService.list()
+    items.value = res.data
   } catch (err) {
     ElMessage.error('Failed to load tickets' + (err instanceof Error ? `: ${err.message}` : ''))
   } finally {
@@ -100,16 +160,16 @@ function onSearch() {
 function create() {
   router.push({ name: 'tickets.create' }).catch(() => {})
 }
-function viewTicket(row: Ticket) {
+function viewTicket(row: Models.Ticket) {
   router.push({ name: 'tickets.detail', params: { id: row.id } }).catch(() => {})
 }
-function editTicket(row: Ticket) {
+function editTicket(row: Models.Ticket) {
   router.push({ name: 'tickets.edit', params: { id: row.id } }).catch(() => {})
 }
-function confirmDelete(row: Ticket) {
+function confirmDelete(row: Models.Ticket) {
   ElMessageBox.confirm(`Delete ticket "${row.title}"?`, 'Confirm', { type: 'warning' })
     .then(async () => {
-      await ticketService.deleteTicket(row.id)
+      await ticketService.delete(row.id)
       ElMessage.success('Deleted')
       // if current page became empty, move to previous page if possible
       if (items.value.length === 1 && pagination.page > 1) pagination.page--
@@ -132,5 +192,31 @@ onMounted(fetchList)
 .list-toolbar {
   display: flex;
   align-items: center;
+}
+
+.tags-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.tag-item {
+  margin: 0 2px;
+}
+
+.more-tag {
+  background: #f0f2f5;
+  cursor: pointer;
+}
+
+.pop-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pop-tag {
+  margin: 2px 0;
 }
 </style>
