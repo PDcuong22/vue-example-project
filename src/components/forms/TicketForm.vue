@@ -47,16 +47,25 @@
 
     <el-form-item label="Attachments">
       <div v-if="attachments.length" class="existing-attachments" style="margin-bottom:8px">
-      <div v-for="att in attachments" :key="att.id" style="display:flex;align-items:center;margin-bottom:6px">
-        <a :href="att.url" target="_blank" style="flex:1">{{ att.file_name }}</a>
-        <el-button
-          size="small"
-          type="text"
-        >
-          {{ 'Remove' }}
-        </el-button>
+        <div v-for="att in attachments" :key="att.id" style="display:flex;align-items:center;margin-bottom:6px">
+          <a
+            :href="att.url"
+            target="_blank"
+            style="flex:1"
+            :style="{ opacity: att._deleted ? 0.5 : 1, textDecoration: att._deleted ? 'line-through' : 'none' }"
+          >
+            {{ att.file_name }}
+          </a>
+          <el-button
+            size="small"
+            type="text"
+            :style="{ color: att._deleted ? '#f56c6c' : '' }"
+            @click="toggleRemoveExisting(att)"
+          >
+            {{ att._deleted ? 'Undo' : 'Remove' }}
+          </el-button>
+        </div>
       </div>
-    </div>
       <el-upload
         class="upload-demo"
         action=""
@@ -129,7 +138,7 @@ const labels = ref<Models.Meta[]>([])
 const categories = ref<Models.Meta[]>([])
 const priorities = ref<Models.Meta[]>([])
 const statuses = ref<Models.Meta[]>([])
-const attachments = ref<Models.Attachment[]>([])
+const attachments = ref<(Models.Attachment & { _deleted?: boolean })[]>([])
 
 const isEdit = computed(() => form.id !== null)
 
@@ -182,7 +191,7 @@ watch(
       form.priority_id = v.priority ? v.priority.id : null
       form.status_id = v.status ? v.status.id : null
       form.assigned_to = v.assigned_to ? v.assigned_to.id : null
-      attachments.value = Array.isArray(v.attachments) ? v.attachments : []
+      attachments.value = Array.isArray(v.attachments) ? v.attachments.map(a => ({ ...a, _deleted: false })) : []
     } else {
       form.id = null
       form.title = ''
@@ -198,6 +207,9 @@ watch(
   { immediate: true },
 )
 
+function toggleRemoveExisting(att: Models.Attachment & { _deleted?: boolean }) {
+  att._deleted = !att._deleted
+}
 
 function handleUploadChange(file: UploadFile, files: UploadFile[]) {
   const next = files.slice(0, MAX_FILES)
@@ -211,6 +223,7 @@ function handleUploadChange(file: UploadFile, files: UploadFile[]) {
   }
   fileList.value = next
 }
+
 function handleRemove(file: UploadFile, files: UploadFile[]) {
   fileList.value = files.slice(0, MAX_FILES)
 }
@@ -231,7 +244,8 @@ function onSubmit() {
     try {
       submitting.value = true
       const files = fileList.value.map((f) => (f.raw)).filter(Boolean) as File[]
-      emit('submit', { payload, files })
+      const attachmentsToRemove = attachments.value.filter(a => a._deleted).map(a => a.id)
+      emit('submit', { payload, files, attachmentsToRemove })
     } finally {
       submitting.value = false
     }

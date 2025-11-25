@@ -46,7 +46,6 @@ async function load() {
       ticket.value = fromStore
     } else if (typeof ticketService.get === 'function') {
       ticket.value = await ticketService.get(id)
-      console.log('Loaded ticket', ticket.value)
     } else {
       const all = await ticketService.list({ page: 1, size: 10 })
       ticket.value = all.data.find((t: Ticket) => t.id === id) ?? null
@@ -56,9 +55,35 @@ async function load() {
   }
 }
 
-async function onSubmit(payload: UpdateTicketDto) {
+async function onSubmit(data: {
+  payload: UpdateTicketDto
+  files?: File[]
+  attachmentsToRemove?: number[]
+}) {
+  const { payload, files = [], attachmentsToRemove = [] } = data
   try {
-    await ticketService.update(id, payload)
+    let updated
+    const needsFormData = files.length > 0 || attachmentsToRemove.length > 0
+    if (!needsFormData) {
+      updated = await ticketService.update(id, payload)
+    } else {
+      const fd = new FormData()
+      Object.entries(payload).forEach(([k, v]) => {
+        if (v === undefined || v === null) return
+        if (Array.isArray(v)) {
+          v.forEach((item) => fd.append(`${k}[]`, String(item)))
+        } else {
+          fd.append(k, String(v))
+        }
+      })
+      attachmentsToRemove.forEach((attId) => fd.append('attachments_to_remove[]', String(attId)))
+      files.forEach((f) => fd.append('attachments[]', f))
+      updated = await ticketService.update(id, fd)
+    }
+
+    if (updated) {
+      ticketsStore.updateTicket(id, updated)
+    }
     ElMessage.success('Ticket updated')
     router.push({ name: 'tickets.list' }).catch(() => {})
   } catch {
@@ -73,5 +98,4 @@ function onCancel() {
 onMounted(load)
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

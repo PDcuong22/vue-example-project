@@ -10,5 +10,5 @@ export type CreateTicketDto = {
 }
 
 export type UpdateTicketDto = Partial<CreateTicketDto> & {
-  status?: 'open' | 'pending' | 'closed'
+  attachments_to_remove?: number[]
 }

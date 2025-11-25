@@ -52,13 +52,12 @@ onMounted(async () => {
     statuses.value = res.statuses
   } catch (e) {
     console.error(e)
-    ElMessage.error('Không thể tải dữ liệu mock')
   } finally {
     loading.value = false
   }
 })
 
-async function onSubmit(payload: CreateTicketDto, files?: File[]) {
+async function onSubmit({payload, files}: {payload: CreateTicketDto, files?: File[]}) {
   try {
     let createdTicket
     if (!files || files.length === 0) {
@@ -67,15 +66,17 @@ async function onSubmit(payload: CreateTicketDto, files?: File[]) {
       const fd = new FormData()
       Object.entries(payload).forEach(([k, v]) => {
         if (v === undefined || v === null) return
-        if (Array.isArray(v)) fd.append(k, JSON.stringify(v))
-        else fd.append(k, String(v))
+        if (Array.isArray(v)) {
+          v.forEach((item) => fd.append(`${k}[]`, String(item)))
+        } else {
+          fd.append(k, String(v))
+        }
       })
       files.forEach((f) => fd.append('attachments[]', f))
-      console.log('FormData entries:', Array.from(fd.entries()))
-      // createdTicket = await ticketService.create(fd)
+      createdTicket = await ticketService.create(fd)
     }
 
-    // ticketsStore.addTicket(createdTicket)
+    ticketsStore.addTicket(createdTicket)
     ElMessage.success('Ticket created')
     router.push({ name: 'tickets.list' }).catch(() => {})
   } catch (e) {

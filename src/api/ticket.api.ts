@@ -15,7 +15,11 @@ export const TicketApi = {
     return axios.post<TicketResponse>('/tickets', payload)
   },
 
-  update(id: number, payload: UpdateTicketDto) {
+  update(id: number, payload: UpdateTicketDto | FormData) {
+    if (payload instanceof FormData) {
+      payload.append('_method', 'PUT')
+      return axios.post(`/tickets/${id}`, payload)
+    }
     return axios.put<TicketResponse>(`/tickets/${id}`, payload)
   },
 

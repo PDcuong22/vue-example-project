@@ -19,7 +19,7 @@ const TicketService = {
     return res.data.data
   },
 
-  async update(id: number, payload: UpdateTicketDto): Promise<Models.Ticket> {
+  async update(id: number, payload: UpdateTicketDto | FormData): Promise<Models.Ticket> {
     const res = await TicketApi.update(id, payload)
     return res.data.data
   },
