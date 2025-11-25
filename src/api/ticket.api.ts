@@ -11,7 +11,7 @@ export const TicketApi = {
     return axios.get<TicketResponse>(`/tickets/${id}`)
   },
 
-  create(payload: CreateTicketDto) {
+  create(payload: CreateTicketDto | FormData) {
     return axios.post<TicketResponse>('/tickets', payload)
   },
 

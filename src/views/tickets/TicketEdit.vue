@@ -27,9 +27,13 @@ import TicketForm from '@/components/forms/TicketForm.vue'
 import ticketService from '@/services/ticket.service'
 import type { Ticket } from '@/types/models'
 import type { UpdateTicketDto } from '@/types/dto'
+import { useTicketsStore } from '@/stores/useTicketsStore'
+
 const route = useRoute()
 const router = useRouter()
 const id = Number(route.params.id)
+
+const ticketsStore = useTicketsStore()
 
 const ticket = ref<Ticket | null>(null)
 const loading = ref(true)
@@ -37,12 +41,14 @@ const loading = ref(true)
 async function load() {
   loading.value = true
   try {
-    // try getTicket, fallback to list search if not available
-    if (typeof ticketService.get === 'function') {
+    const fromStore = ticketsStore.getById(id)
+    if (fromStore) {
+      ticket.value = fromStore
+    } else if (typeof ticketService.get === 'function') {
       ticket.value = await ticketService.get(id)
       console.log('Loaded ticket', ticket.value)
     } else {
-      const all = await ticketService.list({ page: 1, size: 1000 })
+      const all = await ticketService.list({ page: 1, size: 10 })
       ticket.value = all.data.find((t: Ticket) => t.id === id) ?? null
     }
   } finally {
@@ -68,5 +74,4 @@ onMounted(load)
 </script>
 
 <style scoped>
-/* optional */
 </style>

@@ -68,7 +68,7 @@ function statusType(s?: string) {
   if (s === 'open') return 'success'
   if (s === 'progress') return 'warning'
   if (s === 'closed') return 'info'
-  return ''
+  return 'info'
 }
 
 function goEdit() {

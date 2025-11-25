@@ -16,8 +16,7 @@
         <el-button type="primary" @click="create">New</el-button>
       </div>
     </div>
-
-    <el-table :data="items" stripe style="width: 100%" :loading="loading" row-key="id">
+    <el-table :data="ticketsStore.tickets" stripe style="width: 100%" v-loading="loading" row-key="id">
       <el-table-column prop="id" label="#" width="60" />
       <el-table-column prop="title" label="Title" />
       <el-table-column prop="description" label="Description" width="140" />
@@ -105,7 +104,7 @@
     <div style="margin-top: 12px; display: flex; justify-content: flex-end">
       <el-pagination
         background
-        :total="total"
+        :total="ticketsStore.total"
         :page-size="pagination.size"
         :current-page="pagination.page"
         layout="prev, pager, next, sizes, total"
@@ -117,30 +116,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ticketService from '@/services/ticket.service'
 import type { Models } from '@/types'
-const router = useRouter()
+import { useTicketsStore } from '@/stores/useTicketsStore'
 
-const items = ref<Models.Ticket[]>([])
-const total = ref(0)
-const loading = ref(false)
+const router = useRouter()
+const ticketsStore = useTicketsStore()
+
+const loading = ticketsStore.loading
 
 const pagination = reactive({ page: 1, size: 10 })
 const filter = reactive({ q: '' })
 
 async function fetchList() {
-  loading.value = true
-  try {
-    const res = await ticketService.list()
-    items.value = res.data
-  } catch (err) {
-    ElMessage.error('Failed to load tickets' + (err instanceof Error ? `: ${err.message}` : ''))
-  } finally {
-    loading.value = false
-  }
+  await ticketsStore.fetchTickets()
 }
 
 function onPageChange(page: number) {
@@ -171,8 +163,7 @@ function confirmDelete(row: Models.Ticket) {
     .then(async () => {
       await ticketService.delete(row.id)
       ElMessage.success('Deleted')
-      // if current page became empty, move to previous page if possible
-      if (items.value.length === 1 && pagination.page > 1) pagination.page--
+      if (ticketsStore.tickets.length === 1 && pagination.page > 1) pagination.page--
       fetchList()
     })
     .catch(() => {})
@@ -182,7 +173,7 @@ function statusType(status?: string) {
   if (status === 'open') return 'success'
   if (status === 'progress') return 'warning'
   if (status === 'closed') return 'info'
-  return ''
+  return 'info'
 }
 
 onMounted(fetchList)

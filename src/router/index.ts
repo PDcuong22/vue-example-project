@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import authService from '@/services/auth.service'
+import { useAuthStore } from '@/stores/useAuthStore'
 
 const routes = [
   {
@@ -17,8 +18,6 @@ const routes = [
     // which is lazy-loaded when the route is visited.
     component: () => import('../views/AboutView.vue'),
   },
-
-  // tickets routes (không dùng Index.vue)
   {
     path: '/tickets',
     name: 'tickets.list',
@@ -60,7 +59,9 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
+  const auth = useAuthStore()
+  if (!auth.hydrated) await auth.init()
   if (to.meta.requiresAuth && !authService.isAuthenticated()) {
     return next({ name: 'auth.login' })
   }

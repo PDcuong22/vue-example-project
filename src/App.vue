@@ -11,7 +11,7 @@
           <el-header class="app-header">
             <h3 class="page-title">{{ pageTitle }}</h3>
             <div class="header-controls">
-              <Profile :user="currentUser" @command="handleCommand" />
+              <Profile :user="authStore.user" @command="handleCommand" />
             </div>
           </el-header>
 
@@ -23,7 +23,6 @@
     </template>
 
     <template v-else>
-      <!-- minimal wrapper for auth pages (centered) -->
       <div class="auth-wrapper">
         <router-view />
       </div>
@@ -36,7 +35,7 @@ import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import SidebarMenu from './components/SidebarMenu.vue'
 import Profile from './components/ProfileUser.vue'
-import { useAuthStore } from '@/stores/authStore'
+import { useAuthStore } from '@/stores/useAuthStore'
 
 const router = useRouter()
 const route = useRoute()
@@ -53,10 +52,7 @@ function handleCommand(command: string) {
   if (command === 'logout') logout()
   else if (command === 'profile') router.push({ name: 'profile' }).catch(() => {})
 }
-const currentUser = authStore.user
-console.log('Current User in App.vue:', currentUser)
 
-// hide layout when route.meta.hideLayout === true
 const showLayout = computed(() => !(route.meta && route.meta.hideLayout))
 </script>
 

@@ -3,7 +3,7 @@ import type { CreateUserDto, UpdateUserDto } from '@/types/dto/user.dto'
 import type { UserResponse, UserListResponse } from '@/types/responses/user.response'
 
 export const UserApi = {
-  getAll(params?: Record<string, any>) {
+  getAll(params?: Record<string, unknown>) {
     return axios.get<UserListResponse>('/users', { params })
   },
 

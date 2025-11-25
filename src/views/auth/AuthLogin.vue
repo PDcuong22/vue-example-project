@@ -23,7 +23,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import authService from '@/services/auth.service'
-import { useAuthStore } from '@/stores/authStore'
+import { useAuthStore } from '@/stores/useAuthStore'
 import type { Dto } from '@/types'
 
 const authStore = useAuthStore()

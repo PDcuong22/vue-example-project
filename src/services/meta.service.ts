@@ -1,4 +1,4 @@
-import api from '@/api/axios' // <-- dùng instance thay vì axios raw
+import api from '@/api/axios'
 import type { Meta } from '@/types/models'
 
 export interface MetaData {
@@ -15,7 +15,7 @@ const ENDPOINTS = {
   statuses: '/statuses',
 }
 
-const CACHE_TTL = 1000 * 60 * 5 // 5 phút
+const CACHE_TTL = 1000 * 60 * 5
 let cache: { data: MetaData; expiresAt: number } | null = null
 
 async function fetchResource<T>(url: string): Promise<T[]> {

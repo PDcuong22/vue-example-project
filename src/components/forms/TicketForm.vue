@@ -31,25 +31,39 @@
       </el-select>
     </el-form-item>
 
-    <el-form-item label="Status" prop="status_id">
-      <el-select v-model="form.status_id" placeholder="Select status" clearable>
-        <el-option v-for="s in statuses" :key="s.id" :label="s.name" :value="s.id" />
-      </el-select>
-    </el-form-item>
+    <template v-if="isEdit">
+      <el-form-item label="Status" prop="status_id">
+        <el-select v-model="form.status_id" placeholder="Select status" clearable>
+          <el-option v-for="s in statuses" :key="s.id" :label="s.name" :value="s.id" />
+        </el-select>
+      </el-form-item>
 
-    <el-form-item label="Assignee" prop="assigned_to">
-      <el-select v-model="form.assigned_to" placeholder="Select assignee" clearable>
-        <el-option v-for="u in users" :key="u.id" :label="u.name" :value="u.id" />
-      </el-select>
-    </el-form-item>
+      <el-form-item label="Assignee" prop="assigned_to">
+        <el-select v-model="form.assigned_to" placeholder="Select assignee" clearable>
+          <el-option v-for="u in usersStore.agents" :key="u.id" :label="u.name" :value="u.id" />
+        </el-select>
+      </el-form-item>
+    </template>
 
     <el-form-item label="Attachments">
+      <div v-if="attachments.length" class="existing-attachments" style="margin-bottom:8px">
+      <div v-for="att in attachments" :key="att.id" style="display:flex;align-items:center;margin-bottom:6px">
+        <a :href="att.url" target="_blank" style="flex:1">{{ att.file_name }}</a>
+        <el-button
+          size="small"
+          type="text"
+        >
+          {{ 'Remove' }}
+        </el-button>
+      </div>
+    </div>
       <el-upload
         class="upload-demo"
         action=""
         drag
         multiple
         :auto-upload="false"
+        :file-list="fileList"
         :on-change="handleUploadChange"
         :on-remove="handleRemove"
         list-type="text"
@@ -70,21 +84,25 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch, onMounted } from 'vue'
+import { reactive, ref, watch, onMounted, computed } from 'vue'
 import { defineProps, defineEmits } from 'vue'
 import type { PropType } from 'vue'
 import type { UploadFile } from 'element-plus'
-import type { AuthUser, Ticket } from '@/types/models'
-import type { Meta } from '@/types/models'
+import { ElMessage } from 'element-plus'
+import type { Models } from '@/types'
 import { getAllMeta } from '@/services/meta.service'
 import type { CreateTicketDto } from '@/types/dto'
+import { useUsersStore } from '@/stores/useUsersStore'
+import { useAuthStore } from '@/stores/useAuthStore'
 
 const props = defineProps({
-  initial: { type: Object as PropType<Ticket | null>, default: null },
-  users: { type: Array as PropType<AuthUser[]>, default: () => [] },
+  initial: { type: Object as PropType<Models.Ticket | null>, default: null },
 })
 
 const emit = defineEmits(['submit', 'cancel'])
+
+const usersStore = useUsersStore()
+const authStore = useAuthStore()
 
 const formRef = ref()
 
@@ -101,13 +119,25 @@ const form = reactive({
 
 const rules = {
   title: [{ required: true, message: 'Title is required', trigger: 'blur' }],
-  // add other rules as needed
+  description: [{ required: true, message: 'Description is required', trigger: 'blur' }],
+  label_ids: [{ required: true, type: 'array', min: 1, message: 'Select at least 1 label', trigger: 'change' }],
+  category_ids: [{ required: true, type: 'array', min: 1, message: 'Select at least 1 category', trigger: 'change' }],
+  priority_id: [{ required: true, message: 'Priority is required', trigger: 'change' }],
 }
 
-const labels = ref<Meta[]>([])
-const categories = ref<Meta[]>([])
-const priorities = ref<Meta[]>([])
-const statuses = ref<Meta[]>([])
+const labels = ref<Models.Meta[]>([])
+const categories = ref<Models.Meta[]>([])
+const priorities = ref<Models.Meta[]>([])
+const statuses = ref<Models.Meta[]>([])
+const attachments = ref<Models.Attachment[]>([])
+
+const isEdit = computed(() => form.id !== null)
+
+const fileList = ref<UploadFile[]>([])
+const MAX_FILES = 5
+const MAX_FILE_SIZE = 10 * 1024 * 1024
+const allowedTypes = ['image/', 'application/pdf']
+const submitting = ref(false)
 
 async function loadMeta() {
   try {
@@ -121,9 +151,25 @@ async function loadMeta() {
   }
 }
 
-onMounted(loadMeta)
+onMounted(async () => {
+  await loadMeta()
+  if (authStore.isAdmin || authStore.isAgent) {
+    await usersStore.fetchAllAgents()
+  }
+})
 
-/* --- Watch initial and populate form according to new Ticket model --- */
+function validateFile(f: UploadFile) {
+  const anyF = f
+  const raw = anyF.raw
+  if (!raw) return { ok: false, reason: 'Invalid file object' }
+  if (raw.size && raw.size > MAX_FILE_SIZE) return { ok: false, reason: 'File too large' }
+  if (raw.type) {
+    const ok = allowedTypes.some(prefix => raw.type.startsWith(prefix))
+    if (!ok) return { ok: false, reason: 'Unsupported file type' }
+  }
+  return { ok: true }
+}
+
 watch(
   () => props.initial,
   (v) => {
@@ -136,7 +182,7 @@ watch(
       form.priority_id = v.priority ? v.priority.id : null
       form.status_id = v.status ? v.status.id : null
       form.assigned_to = v.assigned_to ? v.assigned_to.id : null
-      // keep fileList as is (attachments require separate handling)
+      attachments.value = Array.isArray(v.attachments) ? v.attachments : []
     } else {
       form.id = null
       form.title = ''
@@ -146,34 +192,27 @@ watch(
       form.priority_id = null
       form.status_id = null
       form.assigned_to = null
+      attachments.value = []
     }
   },
   { immediate: true },
 )
 
-/* --- normalize UploadFile -> UploadFileWithRaw to avoid unsafe casts --- */
-// function toUploadFileWithRaw(f: UploadFile): UploadFileWithRaw {
-//   // preserve existing props; ensure uid is string and raw preserved
-//   const anyF = f as any
-//   return {
-//     uid: anyF.uid != null ? String(anyF.uid) : String(Date.now()),
-//     name: anyF.name,
-//     size: anyF.size,
-//     type: anyF.type,
-//     percent: anyF.percent,
-//     status: anyF.status,
-//     response: anyF.response,
-//     url: anyF.url,
-//     raw: anyF.raw,
-//   }
-// }
 
 function handleUploadChange(file: UploadFile, files: UploadFile[]) {
-  // fileList.value = files.slice(0, 5).map(toUploadFileWithRaw)
-  console.log('Upload change', file, files)
+  const next = files.slice(0, MAX_FILES)
+  for (const f of next) {
+    const v = validateFile(f)
+    if (!v.ok) {
+      ElMessage.error(`${f.name}: ${v.reason}`)
+      const idx = next.indexOf(f)
+      if (idx > -1) next.splice(idx, 1)
+    }
+  }
+  fileList.value = next
 }
 function handleRemove(file: UploadFile, files: UploadFile[]) {
-  console.log('Remove file', file, files)
+  fileList.value = files.slice(0, MAX_FILES)
 }
 
 function onSubmit() {
@@ -189,21 +228,13 @@ function onSubmit() {
       assigned_user_id: form.assigned_to,
     }
 
-    emit('submit', payload)
-
-    // if (fileList.value.length) {
-    //   const fd = new FormData()
-    //   Object.entries(payload).forEach(([k, v]) => {
-    //     if (v !== undefined && v !== null)
-    //       fd.append(k, Array.isArray(v) ? JSON.stringify(v) : String(v))
-    //   })
-    //   fileList.value.forEach((f) => {
-    //     if (f.raw) fd.append('files[]', f.raw)
-    //   })
-    //   emit('submit', fd)
-    // } else {
-    //   emit('submit', payload)
-    // }
+    try {
+      submitting.value = true
+      const files = fileList.value.map((f) => (f.raw)).filter(Boolean) as File[]
+      emit('submit', { payload, files })
+    } finally {
+      submitting.value = false
+    }
   })
 }
 </script>

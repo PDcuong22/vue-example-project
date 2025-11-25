@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import authService from '@/services/auth.service'
 import type { Models } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<Models.AuthUser | null>(null)
   const token = ref<string | null>(authService.getToken())
+  const isAdmin = computed(() => !!user.value && user.value.role === 'Admin')
+  const isAgent = computed(() => !!user.value && user.value.role === 'Agent')
 
   function setUser(u: Models.AuthUser | null) {
     user.value = u
@@ -17,8 +19,8 @@ export const useAuthStore = defineStore('auth', () => {
     else authService.clearToken()
   }
 
+  const hydrated = ref(false)
   async function init() {
-    // gọi khi app start để khôi phục user nếu có token
     const t = authService.getToken()
     token.value = t
     if (t) {
@@ -30,6 +32,7 @@ export const useAuthStore = defineStore('auth', () => {
         setUser(null)
       }
     }
+    hydrated.value = true
   }
 
   async function logout() {
@@ -42,5 +45,5 @@ export const useAuthStore = defineStore('auth', () => {
     setToken(null)
   }
 
-  return { user, token, setUser, setToken, init, logout }
+  return { user, token, hydrated, isAdmin, isAgent, setUser, setToken, init, logout }
 })

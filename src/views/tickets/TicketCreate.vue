@@ -32,6 +32,7 @@ import { ref, onMounted } from 'vue'
 import {getAllMeta} from '@/services/meta.service'
 import type { Meta } from '@/types/models'
 import type { CreateTicketDto } from '@/types/dto'
+import { useTicketsStore } from '@/stores/useTicketsStore'
 
 const router = useRouter()
 const loading = ref(true)
@@ -39,6 +40,8 @@ const labels = ref<Meta[]>([])
 const categories = ref<Meta[]>([])
 const priorities = ref<Meta[]>([])
 const statuses = ref<Meta[]>([])
+const ticketsStore = useTicketsStore()
+
 onMounted(async () => {
   loading.value = true
   try {
@@ -55,9 +58,24 @@ onMounted(async () => {
   }
 })
 
-async function onSubmit(payload: CreateTicketDto) {
+async function onSubmit(payload: CreateTicketDto, files?: File[]) {
   try {
-    await ticketService.create(payload)
+    let createdTicket
+    if (!files || files.length === 0) {
+      createdTicket = await ticketService.create(payload)
+    } else {
+      const fd = new FormData()
+      Object.entries(payload).forEach(([k, v]) => {
+        if (v === undefined || v === null) return
+        if (Array.isArray(v)) fd.append(k, JSON.stringify(v))
+        else fd.append(k, String(v))
+      })
+      files.forEach((f) => fd.append('attachments[]', f))
+      console.log('FormData entries:', Array.from(fd.entries()))
+      // createdTicket = await ticketService.create(fd)
+    }
+
+    // ticketsStore.addTicket(createdTicket)
     ElMessage.success('Ticket created')
     router.push({ name: 'tickets.list' }).catch(() => {})
   } catch (e) {

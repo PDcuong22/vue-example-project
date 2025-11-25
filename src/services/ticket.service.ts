@@ -14,7 +14,7 @@ const TicketService = {
     return res.data.data
   },
 
-  async create(payload: CreateTicketDto): Promise<Models.Ticket> {
+  async create(payload: CreateTicketDto | FormData): Promise<Models.Ticket> {
     const res = await TicketApi.create(payload)
     return res.data.data
   },
