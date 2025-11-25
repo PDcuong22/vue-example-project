@@ -1,5 +1,5 @@
 import api from '@/api/axios'
-import type { LoginDto } from '@/types/dto/auth.dto'
+import type { LoginDto, RegisterDto } from '@/types/dto/auth.dto'
 import type { Models } from '@/types'
 
 class AuthService {
@@ -12,6 +12,11 @@ class AuthService {
     localStorage.setItem(this.TOKEN_KEY, data.access_token)
     api.defaults.headers.common['Authorization'] = `Bearer ${data.access_token}`
     return data
+  }
+
+  async register(payload: RegisterDto){
+    const response =  await api.post('register', payload)
+    return response.data
   }
 
   async logout(): Promise<void> {

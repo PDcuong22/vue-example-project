@@ -12,6 +12,10 @@
         <el-form-item>
           <el-input v-model="form.password" type="password" placeholder="Password" />
         </el-form-item>
+        <!-- confirm password -->
+        <el-form-item>
+          <el-input v-model="form.confirmPassword" type="password" placeholder="Confirm password" />
+        </el-form-item>
 
         <div style="display: flex; gap: 8px; justify-content: flex-end">
           <el-button @click="toLogin">Back to login</el-button>
@@ -26,14 +30,29 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import * as userService from '@/services/userService'
+import authService from '@/services/auth.service'
 
 const router = useRouter()
-const form = ref({ name: '', email: '', password: '' })
+const form = ref({ name: '', email: '', password: '', confirmPassword: '' })
 
 async function onSubmit() {
+  // basic validation
+  if (!form.value.name || !form.value.email || !form.value.password) {
+    ElMessage.error('Please fill name, email and password')
+    return
+  }
+  if (form.value.password !== form.value.confirmPassword) {
+    ElMessage.error('Password and confirm password do not match')
+    return
+  }
+
   try {
-    await userService.createUser({ name: form.value.name, email: form.value.email })
+    await authService.register({
+      name: form.value.name,
+      email: form.value.email,
+      password: form.value.password,
+      password_confirmation: form.value.confirmPassword,
+    })
     ElMessage.success('Account created — please login')
     router.push({ name: 'auth.login' }).catch(() => {})
   } catch {

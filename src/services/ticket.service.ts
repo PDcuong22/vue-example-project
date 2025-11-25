@@ -27,6 +27,11 @@ const TicketService = {
   async delete(id: number): Promise<void> {
     await TicketApi.delete(id)
   },
+
+  async stats(): Promise<{ total: number; open: number; closed: number }> {
+    const res = await TicketApi.stats()
+    return res.data.data
+  },
 }
 
 export default TicketService

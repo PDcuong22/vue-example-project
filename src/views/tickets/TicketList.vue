@@ -4,19 +4,58 @@
       class="list-toolbar"
       style="display: flex; justify-content: space-between; gap: 12px; margin-bottom: 12px"
     >
-      <el-input
-        v-model="filter.q"
-        placeholder="Search"
-        clearable
-        @clear="onSearch"
-        @keyup.enter="onSearch"
-        style="max-width: 360px"
-      />
+      <div style="display: flex; gap: 12px; align-items: center">
+        <el-input
+          v-model="filter.q"
+          placeholder="Search"
+          clearable
+          @clear="onSearch"
+          @keyup.enter="onSearch"
+          style="max-width: 360px"
+        />
+        <el-select
+          v-model="filter.status"
+          placeholder="Status"
+          clearable
+          style="width: 180px"
+          @change="onFilterChange"
+        >
+          <el-option v-for="s in statuses" :key="s.id" :label="s.name" :value="s.id" />
+        </el-select>
+
+        <el-select
+          v-model="filter.priority"
+          placeholder="Priority"
+          clearable
+          style="width: 160px"
+          @change="onFilterChange"
+        >
+          <el-option v-for="p in priorities" :key="p.id" :label="p.name" :value="p.id" />
+        </el-select>
+
+        <el-select
+          v-model="filter.category"
+          placeholder="Category"
+          clearable
+          style="width: 160px"
+          @change="onFilterChange"
+        >
+          <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="c.id" />
+        </el-select>
+      </div>
+
       <div>
         <el-button type="primary" @click="create">New</el-button>
       </div>
     </div>
-    <el-table :data="ticketsStore.tickets" stripe style="width: 100%" v-loading="loading" row-key="id">
+
+    <el-table
+      :data="ticketsStore.tickets"
+      stripe
+      style="width: 100%"
+      v-loading="loading"
+      row-key="id"
+    >
       <el-table-column prop="id" label="#" width="60" />
       <el-table-column prop="title" label="Title" />
       <el-table-column prop="description" label="Description" width="140" />
@@ -25,7 +64,7 @@
       <el-table-column label="Categories" width="180">
         <template #default="{ row }">
           <div class="tags-cell">
-            <template v-for="(c) in (row.categories || []).slice(0, 2)" :key="`cat-${c.id}`">
+            <template v-for="c in (row.categories || []).slice(0, 2)" :key="`cat-${c.id}`">
               <el-tag size="small" type="info" class="tag-item">{{ c.name }}</el-tag>
             </template>
 
@@ -56,7 +95,7 @@
       <el-table-column label="Labels" width="180">
         <template #default="{ row }">
           <div class="tags-cell">
-            <template v-for="(l) in (row.labels || []).slice(0, 2)" :key="`lab-${l.id}`">
+            <template v-for="l in (row.labels || []).slice(0, 2)" :key="`lab-${l.id}`">
               <el-tag size="small" type="warning" class="tag-item">{{ l.name }}</el-tag>
             </template>
 
@@ -116,10 +155,11 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, onMounted } from 'vue'
+import { reactive, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ticketService from '@/services/ticket.service'
+import { getAllMeta } from '@/services/meta.service'
 import type { Models } from '@/types'
 import { useTicketsStore } from '@/stores/useTicketsStore'
 
@@ -129,10 +169,39 @@ const ticketsStore = useTicketsStore()
 const loading = ticketsStore.loading
 
 const pagination = reactive({ page: 1, size: 10 })
-const filter = reactive({ q: '' })
+const filter = reactive({
+  q: '',
+  status: null as number | null,
+  priority: null as number | null,
+  category: null as number | null,
+})
+
+const statuses = ref<Models.Meta[]>([])
+const priorities = ref<Models.Meta[]>([])
+const categories = ref<Models.Meta[]>([])
+
+// load meta for filters
+async function loadMeta() {
+  try {
+    const res = await getAllMeta()
+    statuses.value = res.statuses || []
+    priorities.value = res.priorities || []
+    categories.value = res.categories || []
+  } catch (e) {
+    console.error('Failed to load meta', e)
+  }
+}
 
 async function fetchList() {
-  await ticketsStore.fetchTickets()
+  // pass filters + pagination to store fetch function
+  await ticketsStore.fetchTickets({
+    q: filter.q || undefined,
+    status_id: filter.status || undefined,
+    priority_id: filter.priority || undefined,
+    category_id: filter.category || undefined,
+    page: pagination.page,
+    size: pagination.size,
+  })
 }
 
 function onPageChange(page: number) {
@@ -145,6 +214,10 @@ function onSizeChange(size: number) {
   fetchList()
 }
 function onSearch() {
+  pagination.page = 1
+  fetchList()
+}
+function onFilterChange() {
   pagination.page = 1
   fetchList()
 }
@@ -176,7 +249,10 @@ function statusType(status?: string) {
   return 'info'
 }
 
-onMounted(fetchList)
+onMounted(async () => {
+  await loadMeta()
+  await fetchList()
+})
 </script>
 
 <style scoped>

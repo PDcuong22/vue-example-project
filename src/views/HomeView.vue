@@ -1,59 +1,181 @@
 <template>
   <div class="page-content">
-    <div class="cards">
-      <div class="stat-card">
-        <div class="stat-icon">
-          <el-icon><Ticket /></el-icon>
+    <div class="cards-grid">
+      <el-card
+        v-for="card in statCards"
+        :key="card.key"
+        class="stat-card clickable"
+        shadow="hover"
+        @click="goToList(card.key)"
+      >
+        <div class="card-inner">
+          <div class="icon-wrap" :style="{ background: card.bg }">
+            <el-icon :style="{ color: card.color }">
+              <Ticket />
+            </el-icon>
+          </div>
+
+          <div class="meta">
+            <div class="title">{{ card.title }}</div>
+            <div class="number" v-if="!loading">{{ card.count }}</div>
+            <el-skeleton :loading="loading" animated :rows="1" v-else>
+              <template #template>
+                <div class="skeleton-number"></div>
+              </template>
+            </el-skeleton>
+            <div class="subtitle" v-if="card.subtitle">{{ card.subtitle }}</div>
+          </div>
         </div>
-        <div class="stat-body">
-          <div class="stat-title">Total tickets</div>
-          <div class="stat-number">3</div>
-        </div>
-      </div>
+      </el-card>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { Ticket } from '@element-plus/icons-vue'
+import ticketService from '@/services/ticket.service'
+
+const router = useRouter()
+const loading = ref(false)
+const stats = ref({ total: 0, open: 0, closed: 0 })
+
+async function loadStats() {
+  loading.value = true
+  try {
+    const res = await ticketService.stats()
+    stats.value = {
+      total: Number(res.total ?? 0),
+      open: Number(res.open ?? 0),
+      closed: Number(res.closed ?? 0),
+    }
+  } catch (e) {
+    console.error('Failed to load ticket stats', e)
+  } finally {
+    loading.value = false
+  }
+}
+
+function goToList(key: string) {
+  if (key === 'total') {
+    router.push({ name: 'tickets.list', query: {} }).catch(() => {})
+  } else {
+    router.push({ name: 'tickets.list', query: { status: key } }).catch(() => {})
+  }
+}
+
+onMounted(loadStats)
+
+const statCards = computed(() => [
+  {
+    key: 'total',
+    title: 'Total tickets',
+    count: stats.value.total,
+    bg: 'linear-gradient(135deg,#fff3e0,#fff0ea)',
+    color: '#ff6a3d',
+    subtitle: '',
+  },
+  {
+    key: 'Open',
+    title: 'Open tickets',
+    count: stats.value.open,
+    bg: 'linear-gradient(135deg,#ecfdf5,#e6fff2)',
+    color: '#10b981',
+    subtitle: '',
+  },
+  {
+    key: 'Closed',
+    title: 'Closed tickets',
+    count: stats.value.closed,
+    bg: 'linear-gradient(135deg,#eef2ff,#f7f8ff)',
+    color: '#6366f1',
+    subtitle: '',
+  },
+])
 </script>
 
 <style scoped>
 .page-content {
-  padding-top: 8px;
+  padding: 20px 28px;
 }
-.cards {
-  max-width: 920px;
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  align-items: start;
+  max-width: 1100px;
 }
+
 .stat-card {
+  padding: 12px;
+  border-radius: 12px;
+  transition:
+    transform 0.14s ease,
+    box-shadow 0.14s ease;
+  background: #fff;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+}
+
+.card-inner {
   display: flex;
   align-items: center;
-  background: #fff;
-  border-radius: 10px;
-  padding: 22px;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
+  gap: 14px;
 }
-.stat-icon {
+
+.icon-wrap {
   width: 64px;
   height: 64px;
-  border-radius: 50%;
-  background: #fff0ea;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 20px;
-  color: #ff6a3d;
+  box-shadow: 0 6px 18px rgba(12, 20, 40, 0.04);
 }
-.stat-icon .el-icon {
+
+.icon-wrap .el-icon {
   font-size: 26px;
+  line-height: 1;
 }
-.stat-title {
-  font-size: 16px;
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.title {
+  font-size: 13px;
   color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.stat-number {
-  font-size: 36px;
-  font-weight: 800;
-  margin-top: 6px;
+
+.number {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.skeleton-number {
+  height: 34px;
+  width: 90px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f3f4f6, #eceff1);
+}
+
+.subtitle {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.stat-card.clickable {
+  cursor: pointer;
 }
 </style>

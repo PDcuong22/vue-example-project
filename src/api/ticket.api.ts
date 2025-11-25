@@ -26,4 +26,8 @@ export const TicketApi = {
   delete(id: number) {
     return axios.delete<void>(`/tickets/${id}`)
   },
+
+  stats() {
+    return axios.get<{ data: { total: number; open: number; closed: number } }>('/stats')
+  }
 }
