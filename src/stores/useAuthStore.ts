@@ -7,7 +7,7 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<Models.AuthUser | null>(null)
   const token = ref<string | null>(authService.getToken())
   const isAdmin = computed(() => !!user.value && user.value.role === 'Admin')
-  const isAgent = computed(() => !!user.value && user.value.role === 'Agent')
+  const isAgent = computed(() => !!user.value && user.value.role === 'Support Agent')
 
   function setUser(u: Models.AuthUser | null) {
     user.value = u
@@ -44,6 +44,8 @@ export const useAuthStore = defineStore('auth', () => {
     setUser(null)
     setToken(null)
   }
+
+
 
   return { user, token, hydrated, isAdmin, isAgent, setUser, setToken, init, logout }
 })

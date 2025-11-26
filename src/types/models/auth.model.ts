@@ -9,5 +9,5 @@ export type AuthUser = {
   name: string
   email: string
   role?: string | null
-  avatar_url?: string | null
+  avatar_url?: string
 }

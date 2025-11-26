@@ -2,7 +2,7 @@
   <div class="page-content">
     <div class="cards-grid">
       <el-card
-        v-for="card in statCards"
+        v-for="card in visibleCards"
         :key="card.key"
         class="stat-card clickable"
         shadow="hover"
@@ -36,10 +36,12 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Ticket } from '@element-plus/icons-vue'
 import ticketService from '@/services/ticket.service'
+import { useAuthStore } from '@/stores/useAuthStore'
 
 const router = useRouter()
 const loading = ref(false)
 const stats = ref({ total: 0, open: 0, closed: 0 })
+const authStore = useAuthStore()
 
 async function loadStats() {
   loading.value = true
@@ -93,6 +95,8 @@ const statCards = computed(() => [
     subtitle: '',
   },
 ])
+
+const visibleCards = computed(() => (authStore.isAdmin ? statCards.value : statCards.value.filter((c) => c.key === 'total')))
 </script>
 
 <style scoped>

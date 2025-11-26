@@ -103,6 +103,7 @@ import { getAllMeta } from '@/services/meta.service'
 import type { CreateTicketDto } from '@/types/dto'
 import { useUsersStore } from '@/stores/useUsersStore'
 import { useAuthStore } from '@/stores/useAuthStore'
+import type { FormItemRule } from 'element-plus'
 
 const props = defineProps({
   initial: { type: Object as PropType<Models.Ticket | null>, default: null },
@@ -126,13 +127,14 @@ const form = reactive({
   assigned_to: null as number | null,
 })
 
-const rules = {
+const rules = reactive<Partial<Record<string, FormItemRule[]>>>({
   title: [{ required: true, message: 'Title is required', trigger: 'blur' }],
   description: [{ required: true, message: 'Description is required', trigger: 'blur' }],
   label_ids: [{ required: true, type: 'array', min: 1, message: 'Select at least 1 label', trigger: 'change' }],
   category_ids: [{ required: true, type: 'array', min: 1, message: 'Select at least 1 category', trigger: 'change' }],
   priority_id: [{ required: true, message: 'Priority is required', trigger: 'change' }],
-}
+  status_id: [{ required: true, message: 'Status is required', trigger: 'change' }],
+})
 
 const labels = ref<Models.Meta[]>([])
 const categories = ref<Models.Meta[]>([])

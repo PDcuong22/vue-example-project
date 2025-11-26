@@ -45,34 +45,40 @@
       </div>
 
       <div>
-        <el-button type="primary" @click="create">New</el-button>
+        <el-button type="primary" @click="create" v-if="!authStore.isAgent">New</el-button>
       </div>
     </div>
 
     <el-table
       :data="ticketsStore.tickets"
+      :style="{ width: '100%' }"
       stripe
-      style="width: 100%"
       v-loading="loading"
       row-key="id"
     >
       <el-table-column prop="id" label="#" width="60" />
-      <el-table-column prop="title" label="Title" />
+
+      <!-- Title column -->
+      <el-table-column label="Title">
+        <template #default="{ row }">
+          <el-link @click="openComments(row)" underline>{{ row.title }}</el-link>
+        </template>
+      </el-table-column>
       <el-table-column prop="description" label="Description" width="140" />
 
       <!-- categories column -->
       <el-table-column label="Categories" width="180">
         <template #default="{ row }">
           <div class="tags-cell">
-            <template v-for="c in (row.categories || []).slice(0, 2)" :key="`cat-${c.id}`">
+            <template v-for="c in (row.categories || []).slice(0, 1)" :key="`cat-${c.id}`">
               <el-tag size="small" type="info" class="tag-item">{{ c.name }}</el-tag>
             </template>
 
-            <template v-if="(row.categories || []).length > 2">
+            <template v-if="(row.categories || []).length > 1">
               <el-popover placement="top" width="220" trigger="hover">
                 <div class="pop-list">
                   <el-tag
-                    v-for="c in (row.categories || []).slice(2)"
+                    v-for="c in (row.categories || []).slice(0, 1)"
                     :key="`cat-more-${c.id}`"
                     size="small"
                     class="pop-tag"
@@ -82,7 +88,7 @@
                 </div>
                 <template #reference>
                   <el-tag size="small" class="more-tag"
-                    >+{{ (row.categories || []).length - 2 }}</el-tag
+                    >+{{ (row.categories || []).length - 1 }}</el-tag
                   >
                 </template>
               </el-popover>
@@ -122,7 +128,7 @@
         </template>
       </el-table-column>
 
-      <el-table-column prop="assigned_to.name" label="Assigned To" width="140" />
+      <!-- Status column -->
       <el-table-column prop="status.name" label="Status" width="120">
         <template #default="{ row }">
           <el-tag :type="statusType(row.status?.name?.toLowerCase())">{{
@@ -131,11 +137,28 @@
         </template>
       </el-table-column>
 
-      <el-table-column label="Actions" width="220">
+      <!-- Assignee column -->
+      <el-table-column
+        prop="assigned_to.name"
+        label="Assigned To"
+        width="140"
+        v-if="authStore.isAdmin"
+      />
+
+      <!-- Actions column -->
+      <el-table-column
+        label="Actions"
+        header-align="center"
+        align="center"
+        width="220"
+        v-if="authStore.isAgent || authStore.isAdmin"
+      >
         <template #default="{ row }">
           <el-button type="text" size="small" @click="viewTicket(row)">View</el-button>
           <el-button type="primary" size="small" @click="editTicket(row)">Edit</el-button>
-          <el-button type="danger" size="small" @click="confirmDelete(row)">Delete</el-button>
+          <el-button type="danger" size="small" @click="confirmDelete(row)" v-if="authStore.isAdmin"
+            >Delete</el-button
+          >
         </template>
       </el-table-column>
     </el-table>
@@ -152,9 +175,11 @@
       />
     </div>
   </div>
+  <TicketCommentsDialog v-model="showCommentsDialog" :ticket="selectedTicket" />
 </template>
 
 <script setup lang="ts">
+import TicketCommentsDialog from '@/components/TicketCommentsDialog.vue'
 import { reactive, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -162,9 +187,11 @@ import ticketService from '@/services/ticket.service'
 import { getAllMeta } from '@/services/meta.service'
 import type { Models } from '@/types'
 import { useTicketsStore } from '@/stores/useTicketsStore'
+import { useAuthStore } from '@/stores/useAuthStore'
 
 const router = useRouter()
 const ticketsStore = useTicketsStore()
+const authStore = useAuthStore()
 
 const loading = ticketsStore.loading
 
@@ -176,11 +203,18 @@ const filter = reactive({
   category: null as number | null,
 })
 
+const showCommentsDialog = ref(false)
+const selectedTicket = ref<Models.Ticket | null>(null)
+
+function openComments(ticket: Models.Ticket) {
+  selectedTicket.value = ticket
+  showCommentsDialog.value = true
+}
+
 const statuses = ref<Models.Meta[]>([])
 const priorities = ref<Models.Meta[]>([])
 const categories = ref<Models.Meta[]>([])
 
-// load meta for filters
 async function loadMeta() {
   try {
     const res = await getAllMeta()

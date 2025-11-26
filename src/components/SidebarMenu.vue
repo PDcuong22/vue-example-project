@@ -2,10 +2,10 @@
   <el-menu :default-active="currentActive" router class="app-menu" @select="onSelect">
     <MenuDashboard />
     <MenuTickets />
-    <MenuUsers />
-    <MenuTicketLogs />
-    <MenuCategories />
-    <MenuLabels />
+    <MenuUsers v-if="authStore.isAdmin" />
+    <MenuTicketLogs v-if="authStore.isAdmin" />
+    <MenuCategories v-if="authStore.isAdmin" />
+    <MenuLabels v-if="authStore.isAdmin" />
   </el-menu>
 </template>
 
@@ -19,6 +19,7 @@ import MenuTicketLogs from './menu-items/MenuTicketLogs.vue'
 import MenuCategories from './menu-items/MenuCategories.vue'
 import MenuLabels from './menu-items/MenuLabels.vue'
 import { defineEmits } from 'vue'
+import { useAuthStore } from '@/stores/useAuthStore'
 
 
 
@@ -27,6 +28,7 @@ const emit = defineEmits<{
 }>()
 
 const route = useRoute()
+const authStore = useAuthStore()
 
 const currentActive = computed(() => {
   const seg = route.path.split('/').filter(Boolean)[0]

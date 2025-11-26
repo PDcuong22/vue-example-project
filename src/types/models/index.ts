@@ -3,3 +3,4 @@ export * from './ticket.model';
 export * from './auth.model';
 export * from './meta.model';
 export * from './attachment.model';
+export * from './comment.model';
