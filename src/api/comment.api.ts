@@ -1,11 +1,11 @@
 import axios from './axios'
 import type { CommentDto } from '@/types/dto/comment.dto'
 export const CommentApi = {
-  get(ticketId: number) {
+  get(ticketId: number | null) {
     return axios.get(`/comments/${ticketId}`)
   },
 
-  create(ticketId: number, payload: CommentDto) {
+  create(ticketId: number | null, payload: CommentDto) {
     return axios.post(`/comments/${ticketId}`, payload)
   },
 
