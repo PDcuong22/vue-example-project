@@ -12,7 +12,6 @@
         <el-form-item>
           <el-input v-model="form.password" type="password" placeholder="Password" />
         </el-form-item>
-        <!-- confirm password -->
         <el-form-item>
           <el-input v-model="form.confirmPassword" type="password" placeholder="Confirm password" />
         </el-form-item>
@@ -36,7 +35,6 @@ const router = useRouter()
 const form = ref({ name: '', email: '', password: '', confirmPassword: '' })
 
 async function onSubmit() {
-  // basic validation
   if (!form.value.name || !form.value.email || !form.value.password) {
     ElMessage.error('Please fill name, email and password')
     return

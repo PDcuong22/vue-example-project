@@ -20,7 +20,12 @@
           style="width: 180px"
           @change="onFilterChange"
         >
-          <el-option v-for="s in statuses" :key="s.id" :label="s.name" :value="s.id" />
+          <el-option
+            v-for="s in ticketsStore?.statuses"
+            :key="s.id"
+            :label="s.name"
+            :value="s.id"
+          />
         </el-select>
 
         <el-select
@@ -30,7 +35,12 @@
           style="width: 160px"
           @change="onFilterChange"
         >
-          <el-option v-for="p in priorities" :key="p.id" :label="p.name" :value="p.id" />
+          <el-option
+            v-for="p in ticketsStore.priorities"
+            :key="p.id"
+            :label="p.name"
+            :value="p.id"
+          />
         </el-select>
 
         <el-select
@@ -40,7 +50,12 @@
           style="width: 160px"
           @change="onFilterChange"
         >
-          <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="c.id" />
+          <el-option
+            v-for="c in ticketsStore.categories"
+            :key="c.id"
+            :label="c.name"
+            :value="c.id"
+          />
         </el-select>
       </div>
 
@@ -180,16 +195,16 @@
 
 <script setup lang="ts">
 import TicketCommentsDialog from '@/components/TicketCommentsDialog.vue'
-import { reactive, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { reactive, onMounted, ref, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ticketService from '@/services/ticket.service'
-import { getAllMeta } from '@/services/meta.service'
 import type { Models } from '@/types'
 import { useTicketsStore } from '@/stores/useTicketsStore'
 import { useAuthStore } from '@/stores/useAuthStore'
 
 const router = useRouter()
+const route = useRoute()
 const ticketsStore = useTicketsStore()
 const authStore = useAuthStore()
 
@@ -205,29 +220,14 @@ const filter = reactive({
 
 const showCommentsDialog = ref(false)
 const selectedTicket = ref<Models.Ticket | null>(null)
+const queryStatus = ref(route.query.status)
 
 function openComments(ticket: Models.Ticket) {
   selectedTicket.value = ticket
   showCommentsDialog.value = true
 }
 
-const statuses = ref<Models.Meta[]>([])
-const priorities = ref<Models.Meta[]>([])
-const categories = ref<Models.Meta[]>([])
-
-async function loadMeta() {
-  try {
-    const res = await getAllMeta()
-    statuses.value = res.statuses || []
-    priorities.value = res.priorities || []
-    categories.value = res.categories || []
-  } catch (e) {
-    console.error('Failed to load meta', e)
-  }
-}
-
 async function fetchList() {
-  // pass filters + pagination to store fetch function
   await ticketsStore.fetchTickets({
     q: filter.q || undefined,
     status_id: filter.status || undefined,
@@ -283,8 +283,23 @@ function statusType(status?: string) {
   return 'info'
 }
 
+watch(
+  queryStatus,
+  (status) => {
+    if (status) {
+      const id = ticketsStore.statuses.find(
+        (s) => s.name.toLowerCase() === status.toString().toLowerCase(),
+      )?.id
+      if (id) {
+        filter.status = id
+      }
+    }
+  },
+  { immediate: true },
+)
+
 onMounted(async () => {
-  await loadMeta()
+  if (ticketsStore.statuses) ticketsStore.loadMeta()
   await fetchList()
 })
 </script>

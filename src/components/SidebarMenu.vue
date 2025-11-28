@@ -49,7 +49,6 @@ function onSelect(index: string) {
   if (t) emit('update:title', t)
 }
 
-// <-- new: emit title when route/currentActive changes (includes reload)
 watch(
   currentActive,
   (v) => {

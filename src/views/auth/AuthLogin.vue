@@ -35,31 +35,25 @@ const form = ref<Dto.LoginDto>({
 async function onSubmit() {
   try {
     const res = await authService.login(form.value)
-    console.log('login res:', res)
 
-    // 1) persist token first
     if (res.access_token) {
       authStore.setToken(res.access_token)
     }
 
-    // 2) ensure we have current user BEFORE navigating
     if (res.user) {
       authStore.setUser(res.user)
       console.log('Set current user after login:', res.user)
     } else {
-      // backend didn't return user -> fetch it using token
       try {
         const me = await authService.fetchCurrentUser()
         authStore.setUser(me)
       } catch (err) {
-        // nếu fetch user thất bại, clear token và báo lỗi
         authStore.setToken(null)
         console.error('Failed to fetch current user after login:', err)
         return
       }
     }
 
-    // 3) now navigate
     await router.push({ name: 'home' })
   } catch (e) {
     ElMessage.error('Login failed' + (e instanceof Error ? `: ${e.message}` : ''))

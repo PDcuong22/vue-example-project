@@ -37,15 +37,18 @@ import { useRouter } from 'vue-router'
 import { Ticket } from '@element-plus/icons-vue'
 import ticketService from '@/services/ticket.service'
 import { useAuthStore } from '@/stores/useAuthStore'
+import { useTicketsStore } from '@/stores/useTicketsStore'
 
 const router = useRouter()
 const loading = ref(false)
 const stats = ref({ total: 0, open: 0, closed: 0 })
 const authStore = useAuthStore()
+const ticketSore = useTicketsStore()
 
 async function loadStats() {
   loading.value = true
   try {
+    await ticketSore.loadMeta()
     const res = await ticketService.stats()
     stats.value = {
       total: Number(res.total ?? 0),
