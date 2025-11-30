@@ -52,6 +52,11 @@ const routes = [
     component: () => import('@/views/auth/AuthRegister.vue'),
     meta: { hideLayout: true },
   },
+  {
+    path: '/ticket-logs',
+    name: 'activities',
+    component: () => import('@/views/ticket-logs/ActivitiesView.vue'),
+  }
 ]
 
 const router = createRouter({

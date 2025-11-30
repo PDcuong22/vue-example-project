@@ -68,7 +68,7 @@
       :data="ticketsStore.tickets"
       :style="{ width: '100%' }"
       stripe
-      v-loading="loading"
+      v-loading="ticketsStore.loading"
       row-key="id"
     >
       <el-table-column prop="id" label="#" width="60" />
@@ -207,8 +207,6 @@ const router = useRouter()
 const route = useRoute()
 const ticketsStore = useTicketsStore()
 const authStore = useAuthStore()
-
-const loading = ticketsStore.loading
 
 const pagination = reactive({ page: 1, size: 10 })
 const filter = reactive({
