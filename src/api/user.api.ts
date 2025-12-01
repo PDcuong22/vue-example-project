@@ -7,6 +7,10 @@ export const UserApi = {
     return axios.get<UserListResponse>('/users', { params })
   },
 
+  getAllAgents() {
+    return axios.get<UserListResponse>('/list-agents')
+  },
+
   getOne(id: number) {
     return axios.get<UserResponse>(`/users/${id}`)
   },

@@ -27,5 +27,10 @@ const UserService = {
   async remove(id: number): Promise<void> {
     await UserApi.remove(id)
   },
+
+  async listAgents(): Promise<User[]> {
+    const res = await UserApi.getAllAgents()
+    return res.data.data
+  },
 }
 export default UserService

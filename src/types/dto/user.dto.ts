@@ -3,8 +3,9 @@ export type CreateUserDto = {
   email: string
   password: string
   password_confirmation?: string
+  role_id?:number
 }
 
 export type UpdateUserDto = Partial<CreateUserDto> & {
-  id?: number // optional nếu dùng endpoint /users/:id
+  id: number
 }
