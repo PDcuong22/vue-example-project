@@ -61,6 +61,16 @@ const routes = [
     path: '/users',
     name: 'users',
     component: () => import('@/views/user/UserView.vue'),
+  },
+  {
+    path: '/categories',
+    name: 'categories',
+    component: () => import('@/views/category/CategoryView.vue'),
+  },
+   {
+    path: '/labels',
+    name: 'labels',
+    component: () => import('@/views/label/LabelView.vue'),
   }
 ]
 

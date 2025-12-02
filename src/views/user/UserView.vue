@@ -22,41 +22,28 @@
           style="width: 160px"
           @change="onFilterChange"
         >
-          <el-option
-            v-for="r in userStore.roles"
-            :key="r.id"
-            :label="r.name"
-            :value="r.id"
-          />
+          <el-option v-for="r in userStore.roles" :key="r.id" :label="r.name" :value="r.id" />
         </el-select>
 
         <el-button type="primary" @click="openCreate">Create User</el-button>
       </div>
     </div>
 
-    <el-table
-      :data="userStore.users"
-      stripe
-      border
-      v-loading="userStore.loading"
-      row-key="id"
-    >
+    <el-table :data="userStore.users" stripe border v-loading="userStore.loading" row-key="id">
       <el-table-column type="index" label="#" />
       <el-table-column prop="name" label="Name" />
-      <el-table-column prop="email" label="Email"  />
+      <el-table-column prop="email" label="Email" />
       <el-table-column prop="role" label="Role" />
-      <el-table-column label="Created At" >
+      <el-table-column label="Created At">
         <template #default="scoped">
           {{ formatDate(scoped.row.created_at) }}
         </template>
       </el-table-column>
 
-      <el-table-column label="Actions" >
+      <el-table-column label="Actions">
         <template #default="scoped">
           <el-button size="small" @click="openEdit(scoped.row)">Edit</el-button>
-          <el-button size="small" type="danger" @click="deleteUser(scoped.row.id)">
-            Delete
-          </el-button>
+          <el-button size="small" type="danger" @click="deleteUser(scoped.row)"> Delete </el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -78,17 +65,17 @@
       @submit="handleSubmit"
       @cancel="handleCancel"
     />
-
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import {useUsersStore} from '@/stores/useUsersStore'
+import { useUsersStore } from '@/stores/useUsersStore'
 import UserForm from '@/components/forms/UserForm.vue'
 import type { CreateUserDto, UpdateUserDto } from '@/types/dto'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import type { User } from '@/types/models'
+import UserService from '@/services/user.service'
 
 const userStore = useUsersStore()
 
@@ -106,13 +93,13 @@ function openCreate() {
 }
 
 function openEdit(user: User) {
-  const role = userStore.roles.find(r => r.name === user.role)
+  const role = userStore.roles.find((r) => r.name === user.role)
   selectedUser.value = { ...user, role_id: role ? role.id : undefined }
   dialogVisible.value = true
 }
 
 async function handleSubmit(formData: CreateUserDto) {
-  if(formData.password || formData.password_confirmation) {
+  if (formData.password || formData.password_confirmation) {
     if (formData.password !== formData.password_confirmation) {
       ElMessage.error('Password and confirm password do not match')
       return
@@ -167,16 +154,26 @@ function onSizeChange(size: number) {
   fetchUsers()
 }
 
-async function deleteUser(id:number) {
-  console.log('Delete user id:', id)
+async function deleteUser(row: User) {
+  ElMessageBox.confirm(`Delete ticket "${row.name}"?`, 'Confirm', { type: 'warning' })
+    .then(async () => {
+      try {
+        await UserService.remove(row.id)
+        ElMessage.success('Deleted')
+        if (userStore.users.length === 1 && userStore.pagination.page > 1)
+          userStore.pagination.page--
+        fetchUsers()
+      } catch (error: any) {
+        const msg = error?.response?.data?.message || 'Delete failed'
+        ElMessage.error(msg)
+      }
+    })
+    .catch(() => {})
 }
 
 const formatDate = (dateStr: string) => new Date(dateStr).toLocaleString('vi-VN')
 
 onMounted(async () => {
-  await Promise.all([
-    userStore.fetchRoles(),
-    fetchUsers()
-  ])
+  await Promise.all([userStore.fetchRoles(), fetchUsers()])
 })
 </script>

@@ -72,6 +72,7 @@ export const useUsersStore = defineStore('users', () => {
     try {
       const user = await userService.create(u)
       users.value.unshift(user)
+      pagination.total = pagination.total + 1
     } finally {
       loading.value = false
     }
