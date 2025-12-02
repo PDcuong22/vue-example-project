@@ -46,6 +46,14 @@ class AuthService {
   async fetchCurrentUser(): Promise<Models.AuthUser> {
     return api.get('profile').then(res => res.data.data)
   }
+
+  async updateProfile(payload: FormData): Promise<Models.AuthUser> {
+    return api.put('/profile', payload).then(res =>res.data.data)
+  }
+
+  async updatePassword(payload: FormData){
+    return api.put('/password', payload)
+  }
 }
 
 export default new AuthService()

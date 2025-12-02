@@ -33,7 +33,6 @@ const props = withDefaults(
   { user: null },
 )
 
-// keep a reactive ref to props.user
 const user = toRef(props, 'user')
 
 const emit = defineEmits<{

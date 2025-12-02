@@ -71,6 +71,11 @@ const routes = [
     path: '/labels',
     name: 'labels',
     component: () => import('@/views/label/LabelView.vue'),
+  },
+  {
+    path:'/profile',
+    name: 'profile',
+    component: () => import('@/views/profile/ProfileView.vue'),
   }
 ]
 
